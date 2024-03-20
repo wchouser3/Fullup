@@ -1,0 +1,63 @@
+#!/bin/bash
+
+##This is a script to fully update an Archlinux system and perform some cleanup tasks.
+##It requres the following additional packages: yay, reflector, pacman-contrib, and flatpak
+
+##Color Table
+RED='\033[0;31m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+WHITE='\033[1;37m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+LCYAN='\033[1;36m'
+NC='\033[0m' # No Color
+BOLD=$(tput bold)
+NORM=$(tput sgr0)
+
+echo -e "${GREEN}${BOLD}---Fullup!--- ${NC}${CYAN}${BOLD}Archlinux update script by William Houser${NC}${NORM}"
+sleep 2 &&
+#sudo btrfs subvolume snapshot / /.snapshots/"$(date +"%m-%d-%Y-%H%M")" &&
+echo -e "${YELLOW}${BOLD}Generating Optimized Pacman Mirrorlist For US ${NC}${NORM}${RED}${BOLD}(if you require a mirror list from another locale edit the script accordingly)${NC}${NORM}"
+sleep 1 &&
+if command -v reflector >> /dev/null
+then
+    sudo reflector --verbose --latest 5 --country 'United States' --age 12 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
+else
+    echo -e "${RED}${BOLD}Reflector is not installed on this system - Installing now${NC}${NORM}"
+    sudo pacman -Sy reflector --noconfirm
+    sudo reflector --verbose --latest 5 --country 'United States' --age 12 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
+fi
+echo -e "${YELLOW}${BOLD}Performing Full System Upgrade ${NC}${WHITE}(including AUR, and development packages)${NC}${NORM}"
+sleep 2 &&
+if command -v yay >> /dev/null
+then
+    yay --devel --noconfirm
+else
+    echo -e "${RED}${BOLD}Yay is not installed on this machine - Installing Now${NC}${NORM}"
+    rm yay.tar.gz
+    wget https://aur.archlinux.org/cgit/aur.git/snapshot/yay.tar.gz
+    tar -xvzf yay.tar.gz
+    cd yay/
+    makepkg -isc --noconfirm
+    cd ~/
+    rm -r yay/
+    rm yay.tar.gz
+    yay --devel --noconfirm
+fi
+echo -e "${YELLOW}${BOLD}Performing Package Cache Cleanup${NC}${NORM}"
+if command -v paccache >> /dev/null
+then
+    sudo paccache -r
+    sudo paccache -ruk0
+else
+    echo -e "${RED}${BOLD}pacman-contrib not installed on this machine - Installing now${NC}${NORM}"
+    sudo pacman -Sy pacman-contrib --noconfirm
+    sudo paccache -r
+    sudo paccache -ruk0
+fi
+echo -e "${YELLOW}${BOLD}Finally - Updating Flatpaks!${NC}${NORM}"
+sleep 1 &&
+flatpak update -y
+echo -e "${RED}${BOLD}System Update Complete!${NC}"
+exit
