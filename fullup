@@ -30,6 +30,12 @@ else
 fi
 echo -e "${YELLOW}${BOLD}Performing Full System Upgrade ${NC}${WHITE}(including AUR, and development packages)${NC}${NORM}"
 sleep 2 &&
+if command -v wget >> /dev/null
+then
+    echo "wget installed - moving on" >> /dev/null
+else
+    sudo pacman -Sy wget --noconfirm
+fi
 if command -v yay >> /dev/null
 then
     yay --devel --noconfirm
